@@ -7,7 +7,6 @@ class Node:
     def __init__(self, data):
         '''
         Instantiate a new instance of a node
-
         :param data: Information about the node
         :type  data: ``dict``
         '''
@@ -38,7 +37,6 @@ class Node:
     def data(self, node_data):
         '''
         Node data
-
         :param node_data: Contains the node data, text and if a node is
                             collapsed or expanded
         :type  node_data: ``dict``
@@ -60,7 +58,6 @@ class Node:
     def icon(self, image_url):
         '''
         Set an icon on the node
-
         :param image_url: Url of the icon
         :type  image_url: ``str``
         '''
@@ -79,7 +76,6 @@ class Node:
     def tags(self, data):
         '''
         Set tags for the node
-
         :param data: Tags to be add on the node
         :type  data: ``list`` of ``str``
         '''
@@ -93,16 +89,12 @@ class Tree(Widget):
     def __init__(self, headings, data=None, id=None, style=None):
         '''
         Instantiate a new instance of the tree widget
-
         :param headings: The list of headings for the tree
         :type  headings: ``list`` of ``str``
-
         :param data: Data source for the tree
         :type  data: ``dict``
-
         :param id: An identifier for this widget.
         :type  id: ``int``
-
         :param style: an optional style object. If no style is provide
                         then a new one will be created for the widget.
         :type style: :class:`colosseum.CSSNode`
@@ -119,19 +111,14 @@ class Tree(Widget):
                                     collapse=True):
         '''
         Insert a node on the tree
-
         :param item: Item to be add on the tree
         :type  item: ``str``
-
         :param parent: Node's parent
         :type  parent: :class:`tree.Node`
-
         :param index: Location to add the node on its parent node
         :type  index: ``int``
-
         :param collapse: Sets a node to be shown expanded or collapsed
         :type  collapse: ``bool``
-
         :returns: The node inserted on the tree
         :type:      :class:`tree.Node`
         '''
@@ -140,6 +127,7 @@ class Tree(Widget):
 
         node_id = self._insert(node)
         node.id = node_id
+
         # Insert node on the tree
         self.tree[node.id] = node
         # Insert node on its parent children
@@ -194,7 +182,6 @@ class Tree(Widget):
     def data(self, tree):
         '''
         Set the data source of the tree
-
         :param tree: Data source
         :type  tree: ``dict`` or ``class``
         '''
@@ -211,7 +198,6 @@ class Tree(Widget):
     def _add_from_data_source(self, parent_node):
         '''
         Add nodes from a data source on the Tree
-
         :param parent_node: Parent's node
         :type  parent_node: :class:`tree.Node`
         '''
@@ -226,10 +212,8 @@ class Tree(Widget):
     def _add_from_dict(self, parent_node, children):
         '''
         Add nodes from a dictionary on the Tree
-
         :param parent_node: Parent's node
         :type  parent_node: :class:`tree.Node`
-
         :param children: Items of each parent node
         :type  children: ``dict`` or ``str`` or ``None``
         '''

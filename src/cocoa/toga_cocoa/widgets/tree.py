@@ -40,12 +40,6 @@ class TogaTree(NSOutlineView):
         cell.setImage_(self.interface.tree[id(item)]._icon['obj'])
         cell.setLeaf_(True)
 
-    @objc_method
-    def outlineView_willDisplayCell_forTableColumn_item_(self, tree, cell,
-                                                        column, item):
-        cell.setImage_(self.interface._image)
-        cell.setLeaf_(True)
-
     # OutlineViewDelegate methods
     @objc_method
     def outlineViewSelectionDidChange_(self, notification) -> None:
@@ -65,47 +59,44 @@ class Tree(TreeInterface, WidgetMixin):
         # Create a tree view, and put it in a scroll view.
         # The scroll view is the _impl, because it's the outer container.
         self._impl = NSScrollView.alloc().init()
-        self._impl.hasVerticalScroller = True
-        self._impl.hasHorizontalScroller = False
-        self._impl.autohidesScrollers = False
-        self._impl.borderType = NSBezelBorder
+        self._impl.setHasVerticalScroller_(True)
+        self._impl.setHasHorizontalScroller_(True)
+        self._impl.setAutohidesScrollers_(False)
+        self._impl.setBorderType_(NSBezelBorder)
 
         # Disable all autolayout functionality on the outer widget
-        self._impl.translatesAutoresizingMaskIntoConstraints = False
-        self._impl.autoresizesSubviews = True
+        self._impl.setTranslatesAutoresizingMaskIntoConstraints_(False)
 
-        # Create the Tree widget
         self._tree = TogaTree.alloc().init()
         self._tree.interface = self
-        self._tree.columnAutoresizingStyle = NSTableViewUniformColumnAutoresizingStyle
-
+        self._tree.setColumnAutoresizingStyle_(NSTableViewUniformColumnAutoresizingStyle)
         # Use autolayout for the inner widget.
-        self._tree.translatesAutoresizingMaskIntoConstraints = True
+        self._tree.setTranslatesAutoresizingMaskIntoConstraints_(True)
 
         # Create columns for the tree
         self._columns = [
-            NSTableColumn.alloc().initWithIdentifier('%d' % i)
+            NSTableColumn.alloc().initWithIdentifier_('%d' % i)
             for i, heading in enumerate(self.headings)
         ]
 
         custom_cell = NSBrowserCell.alloc().init()
 
         for heading, column in zip(self.headings, self._columns):
-            self._tree.addTableColumn(column)
+            self._tree.addTableColumn_(column)
             cell = column.dataCell
-            cell.editable = False
-            cell.selectable = False
+            cell.setEditable_(False)
+            cell.setSelectable_(False)
             column.headerCell.stringValue = heading
             column.setDataCell_(custom_cell)
 
         # Put the tree arrows in the first column.
-        self._tree.outlineTableColumn = self._columns[0]
+        self._tree.setOutlineTableColumn_(self._columns[0])
 
-        self._tree.delegate = self._tree
-        self._tree.dataSource = self._tree
+        self._tree.setDelegate_(self._tree)
+        self._tree.setDataSource_(self._tree)
 
         # Embed the tree view in the scroll view
-        self._impl.documentView = self._tree
+        self._impl.setDocumentView_(self._tree)
 
         # Add the layout constraints
         self._add_constraints()
@@ -123,6 +114,12 @@ class Tree(TreeInterface, WidgetMixin):
         image.setSize_(size)
 
         node._icon['obj'] = image
+
+    def _set_collapse(self, node, status):
+        if status:
+            self._tree.collapseItem(node._impl)
+        else:
+            self._tree.expandItem(node._impl)
 
     def rehint(self):
         self._tree.reloadData()
