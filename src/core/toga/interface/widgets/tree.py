@@ -13,16 +13,40 @@ class Node:
         '''
         self._impl = None
         self.id = None
-        self.data = data
-        self.children = None
         self._icon = {'url' : None, 'obj' : None}
         self._update = []
+        self.children = None
+        self.data = data
 
     def collapse(self):
+        self.data['collapse'] = True
+        self._update.append('collapse')
+
+    def expand(self):
+        self.data['collapse'] = False
+        self._update.append('expand')
+
+    @property
+    def data(self):
         '''
-        Collapse a node on the tree
+        :returns: Node data
+        :rtype: ``dict``
         '''
-        pass
+        return self._data
+
+    @data.setter
+    def data(self, node_data):
+        '''
+        Node data
+
+        :param node_data: Contains the node data, text and if a node is
+                            collapsed or expanded
+        :type  node_data: ``dict``
+        '''
+        self._data = node_data
+        if node_data:
+            update_call = 'collapse' if self._data['collapse'] else 'expand'
+            self._update.append(update_call)
 
     @property
     def icon(self):
@@ -42,24 +66,6 @@ class Node:
         '''
         self._icon['url'] = image_url
         self._update.append('icon')
-
-    @property
-    def color(self):
-        '''
-        :returns: The current color of the node
-        :rtype: ``str``
-        '''
-        pass
-
-    @color.setter
-    def color(self, color):
-        '''
-        Set a color for the text of the node
-
-        :param color: Color to be set on the text
-        :type  color: ``str``
-        '''
-        pass
 
     @property
     def tags(self):
@@ -106,10 +112,11 @@ class Tree(Widget):
         self.tree = { None: Node(None) }
 
     def _configure(self, data):
-        if data:
+        if data is not None:
             self.data = data
 
-    def insert(self, item, parent=None, index=None, collapse=True):
+    def insert(self, item, parent=None, index=None,
+                                    collapse=True):
         '''
         Insert a node on the tree
 
@@ -167,10 +174,13 @@ class Tree(Widget):
                 parent_node = self.insert(parent)
                 self._add_from_dict(parent_node, children)
         else:
-            parents = self._data.source.roots()
+            parents = self._data.roots()
             for node in parents:
                 parent_node = self.insert(node)
+                self._update_cosmetic(parent_node)
                 self._add_from_data_source(parent_node)
+
+        self.apply_layout()
 
     @property
     def data(self):
@@ -192,6 +202,12 @@ class Tree(Widget):
 
         self.update()
 
+    def _update_cosmetic(self, node):
+        if self._data.is_collapsed(node):
+            node.collapse()
+        else:
+            node.expand()
+
     def _add_from_data_source(self, parent_node):
         '''
         Add nodes from a data source on the Tree
@@ -199,11 +215,12 @@ class Tree(Widget):
         :param parent_node: Parent's node
         :type  parent_node: :class:`tree.Node`
         '''
-        children = self._data.source.children(parent_node)
+        children = self._data.children(parent_node)
         if children:
             # list of str
             for child in children:
                 new_child = self.insert(child, parent_node)
+                self._update_cosmetic(new_child)
                 self._add_from_data_source(new_child)
 
     def _add_from_dict(self, parent_node, children):
@@ -223,6 +240,14 @@ class Tree(Widget):
                 new_parent_node = self.insert(new_parent, parent_node)
                 self._add_from_dict(new_parent_node, child)
 
+    def _update_node_layout(self, node):
+        type_layout = node._update.pop()
+        if type_layout == 'icon':
+            self._set_icon(node)
+        elif type_layout == 'collapse':
+            self._set_collapse(node, True)
+        elif type_layout == 'expand':
+            self._set_collapse(node, False)
 
     def apply_layout(self):
         '''
@@ -230,9 +255,7 @@ class Tree(Widget):
         '''
         for ids, node in self.tree.items():
             if node._update:
-                type_layout = node._update.pop()
-                if type_layout == 'icon':
-                    self._set_icon(node)
+                self._update_node_layout(node)
 
         self.rehint()
 
@@ -241,6 +264,9 @@ class Tree(Widget):
 
     def _set_icon(self, node):
         raise NotImplementedError('Tree widget must define _set_icon()')
+
+    def _set_collapse(self, node):
+        raise NotImplementedError('Tree widget must define _set_collapse()')
 
     def rehint(self):
         raise NotImplementedError('Tree widget must define rehint()')
