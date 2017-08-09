@@ -27,7 +27,7 @@ class OptionContainer(OptionContainerInterface, WidgetMixin):
         self._delegate = TogaTabViewDelegate.alloc().init()
         self._delegate._interface = self
 
-        self._impl.setDelegate_(self._delegate)
+        self._impl.delegate = self._delegate
 
         # Add the layout constraints
         self._add_constraints()
@@ -36,14 +36,14 @@ class OptionContainer(OptionContainerInterface, WidgetMixin):
         self._selected = {'id':view_id, 'label':view_label}
 
     def _add_content(self, label, container, widget):
-        item = NSTabViewItem.alloc().initWithIdentifier_('%s-Tab-%s' % (id(self), id(widget)))
-        item.setLabel_(label)
+        item = NSTabViewItem.alloc().initWithIdentifier('%s-Tab-%s' % (id(self), id(widget)))
+        item.label = label
 
         # Turn the autoresizing mask on the container widget
         # into constraints. This makes the container fill the
         # available space inside the OptionContainer.
-        container._impl.setTranslatesAutoresizingMaskIntoConstraints_(True)
+        container._impl.translatesAutoresizingMaskIntoConstraints = True
 
-        item.setView_(container._impl)
+        item.view = container._impl
 
-        self._impl.addTabViewItem_(item)
+        self._impl.addTabViewItem(item)
