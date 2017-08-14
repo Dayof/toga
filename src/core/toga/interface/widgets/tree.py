@@ -68,24 +68,34 @@ class Tree(Widget):
     '''
     Tree widget
     '''
-    def __init__(self, headings, data=None, id=None, style=None):
+    def __init__(self, headings, data=None, id=None, style=None,
+                                on_selection=None):
         '''
         Instantiate a new instance of the tree widget
+
         :param headings: The list of headings for the tree
         :type  headings: ``list`` of ``str``
+
         :param data: Data source for the tree
         :type  data: ``dict``
+
         :param id: An identifier for this widget.
         :type  id: ``int``
+
         :param style: an optional style object. If no style is provide
                         then a new one will be created for the widget.
         :type style: :class:`colosseum.CSSNode`
+
+        :param on_selection: Function to execute when select a node on the Tree
+        :type on_selection:  ``callable``
         '''
-        super().__init__(id=id, style=style, data=data)
+        super().__init__(id=id, style=style, data=data,
+                                on_selection=on_selection)
         self.headings = headings
         self.tree = { None: Node(None) }
 
-    def _configure(self, data):
+    def _configure(self, data, on_selection):
+        self.on_selection = on_selection
         if data is not None:
             self.data = data
 
@@ -224,6 +234,25 @@ class Tree(Widget):
                 self._update_node_layout(node)
 
         self.rehint()
+
+    @property
+    def on_selection(self):
+        """
+        The callable function for when a node on the Tree is selected
+
+        :rtype: ``callable``
+        """
+        return self._on_selection
+
+    @on_selection.setter
+    def on_selection(self, handler):
+        """
+        Set the function to be executed on node selection
+
+        :param handler:     callback function
+        :type handler:      ``callable``
+        """
+        self._on_selection = handler
 
     def _insert(self, node):
         raise NotImplementedError('Tree widget must define _insert()')
