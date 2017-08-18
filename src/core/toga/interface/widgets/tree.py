@@ -7,23 +7,15 @@ class Node:
     def __init__(self, data):
         '''
         Instantiate a new instance of a node
+
         :param data: Information about the node
         :type  data: ``dict``
         '''
         self._impl = None
         self.id = None
-        self._icon = {'url' : None, 'obj' : None}
         self._update = []
         self.children = None
         self.data = data
-
-    def collapse(self):
-        self.data['collapse'] = True
-        self._update.append('collapse')
-
-    def expand(self):
-        self.data['collapse'] = False
-        self._update.append('expand')
 
     @property
     def data(self):
@@ -37,14 +29,26 @@ class Node:
     def data(self, node_data):
         '''
         Node data
-        :param node_data: Contains the node data, text and if a node is
+
+        :param node_data: Contains the node data
+                            Text, icon and a bool that indicates if a node is
                             collapsed or expanded
         :type  node_data: ``dict``
         '''
         self._data = node_data
         if node_data:
-            update_call = 'collapse' if self._data['collapse'] else 'expand'
+            update_call = 'collapse' if self._data['collapsed'] else 'expand'
             self._update.append(update_call)
+            if node_data['icon']['url'] is not None:
+                self._update.append('icon')
+
+    def collapse(self):
+        self.data['collapsed'] = True
+        self._update.append('collapse')
+
+    def expand(self):
+        self.data['collapsed'] = False
+        self._update.append('expand')
 
     @property
     def icon(self):
@@ -52,16 +56,17 @@ class Node:
         :returns: The image url of the node
         :rtype: ``str``
         '''
-        return self._icon['url']
+        return self._data['icon']['url']
 
     @icon.setter
     def icon(self, image_url):
         '''
         Set an icon on the node
+
         :param image_url: Url of the icon
         :type  image_url: ``str``
         '''
-        self._icon['url'] = image_url
+        self._data['icon']['url'] = image_url
         self._update.append('icon')
 
 class Tree(Widget):
@@ -99,22 +104,34 @@ class Tree(Widget):
         if data is not None:
             self.data = data
 
-    def insert(self, item, parent=None, index=None,
-                                    collapse=True):
+    def insert(self, item, parent=None, index=None, collapsed=True):
         '''
         Insert a node on the tree
+
         :param item: Item to be add on the tree
         :type  item: ``str``
+
         :param parent: Node's parent
         :type  parent: :class:`tree.Node`
+
         :param index: Location to add the node on its parent node
         :type  index: ``int``
-        :param collapse: Sets a node to be shown expanded or collapsed
-        :type  collapse: ``bool``
+
+        :param collapsed: Sets a node to be shown expanded or collapsed
+        :type  collapsed: ``bool``
+
         :returns: The node inserted on the tree
         :type:      :class:`tree.Node`
         '''
-        node_data = {'text': item, 'collapse': collapse}
+        if isinstance(item, dict):
+            new_item_icon = {'url': item['icon'], 'obj': None}
+            item['icon'] = new_item_icon
+            node_data = item
+        else:
+            node_data = {'text': item,
+                        'icon': {'url': None, 'obj': None},
+                        'collapsed': collapsed}
+
         node = Node(node_data)
 
         node_id = self._insert(node)
@@ -146,19 +163,18 @@ class Tree(Widget):
         '''
         Update Tree data
         '''
-        # reset tree data
+        # Reset tree data
         self.tree = { None: Node(None) }
 
         if isinstance(self._data, dict):
             for parent, children in self._data.items():
                 parent_node = self.insert(parent)
-                self._add_from_dict(parent_node, children)
+                self._add_nodes(parent_node, children)
         else:
             parents = self._data.roots()
             for node in parents:
                 parent_node = self.insert(node)
-                self._update_cosmetic(parent_node)
-                self._add_from_data_source(parent_node)
+                self._add_nodes(parent_node)
 
         self.apply_layout()
 
@@ -174,47 +190,39 @@ class Tree(Widget):
     def data(self, tree):
         '''
         Set the data source of the tree
+
         :param tree: Data source
         :type  tree: ``dict`` or ``class``
         '''
         self._data = tree
-
         self.update()
 
-    def _update_cosmetic(self, node):
-        if self._data.is_collapsed(node):
-            node.collapse()
-        else:
-            node.expand()
-
-    def _add_from_data_source(self, parent_node):
+    def _add_nodes(self, parent_node, children=None):
         '''
-        Add nodes from a data source on the Tree
+        Add nodes from a data source or a dictionary on the Tree
+
         :param parent_node: Parent's node
         :type  parent_node: :class:`tree.Node`
-        '''
-        children = self._data.children(parent_node)
-        if children:
-            # list of str
-            for child in children:
-                new_child = self.insert(child, parent_node)
-                self._update_cosmetic(new_child)
-                self._add_from_data_source(new_child)
 
-    def _add_from_dict(self, parent_node, children):
-        '''
-        Add nodes from a dictionary on the Tree
-        :param parent_node: Parent's node
-        :type  parent_node: :class:`tree.Node`
         :param children: Items of each parent node
         :type  children: ``dict`` or ``str`` or ``None``
         '''
-        if isinstance(children, str):
-            self.insert(children, parent_node)
-        elif isinstance(children, dict):
-            for new_parent, child in children.items():
-                new_parent_node = self.insert(new_parent, parent_node)
-                self._add_from_dict(new_parent_node, child)
+        # Nodes from a data source implementation
+        if children is None:
+            # List of dictionary or list of strings
+            children_found = self._data.children(parent_node)
+            if children_found:
+                for child_data in children_found:
+                    new_child = self.insert(child_data, parent_node)
+                    self._add_nodes(new_child)
+        # Nodes from a dictionary data type
+        else:
+            if isinstance(children, str):
+                self.insert(children, parent_node)
+            elif isinstance(children, dict):
+                for new_parent, child in children.items():
+                    new_parent_node = self.insert(new_parent, parent_node)
+                    self._add_nodes(new_parent_node, child)
 
     def _update_node_layout(self, node):
         type_layout = node._update.pop()
